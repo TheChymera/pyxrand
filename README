@@ -1,0 +1,11 @@
+Pyxrand 0.0.1
+2013-06-07
+=======
+
+Python script for randomizing pixel locations in images.
+
+Non-free image files excluded via .gitignore. Please contact the project leader for advice on how to acquire suitable images. 
+
+
+Released under the GPLv3 license.
+Project led by Horea Christian (address all correspondence to: h.chr@mail.ru)
