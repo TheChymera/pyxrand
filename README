@@ -1,5 +1,5 @@
-Pyxrand 0.0.2
-2013-06-27
+Pyxrand 0.0.0
+2013-07-04
 =======
 
 Python script for shuffling pixels in images (either by-pixel with variable randomness or in variable cluster sizes with invariable randomness).
