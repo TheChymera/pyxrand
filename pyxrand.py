@@ -3,8 +3,9 @@ from __future__ import division
 __author__ = 'Horea Christian'
 from os import path, listdir
 from scipy import ndimage
-from scipy.misc import imsave
+from scipy.misc import toimage
 from skimage.util.shape import view_as_windows
+from skimage.util.montage import montage2d
 import numpy as np
 import matplotlib.cm as cm
 import matplotlib.image as mpimg
@@ -12,14 +13,12 @@ import matplotlib.pyplot as plt
 import imp
 import cv2
 
-montage = imp.load_source('montage2d', '/home/chymera/src/scikit-image/skimage/util/montage.py')
-
 by_pixel = False # True if you want to shuffle by-pixel, False if you want to shuffle by cluster.
 localpath = '~/src/pyxrand/img/' # path where image files are located
 
-cell_size_step = 8 # in what steps should the cell size increase [px] ?
-cell_size_minimum = 16 # what's the minimum cell size / start cell size [px] ?
-cell_size_increments = 8 # how many pictures do you want ?
+cell_size_step = 4 # in what steps should the cell size increase [px] ?
+cell_size_minimum = 8 # what's the minimum cell size / start cell size [px] ?
+cell_size_increments = 6 # how many pictures do you want ?
 
 max_randomness = 16 # type maximal re-mapping radius -- ONLY RELEVANT FOR by_pixel == True
 randomness_steps = 8 # type desired number of randomness steps (i.e. the number of output files) -- ONLY RELEVANT FOR by_pixel == True
@@ -36,8 +35,8 @@ for pic in listdir(input_folder):
 	    return (output_coords[0] + np.random.randint(-rdness*randomness_step, rdness*randomness_step, (1, 1)), output_coords[1] + np.random.randint(-rdness*randomness_step, rdness*randomness_step, (1, 1)))
 	im = mpimg.imread(input_folder+pic)
 	for rdness in np.arange(randomness_steps)+1:
-	    im = ndimage.geometric_transform(im, randomization_funct, mode= 'nearest', extra_arguments=(rdness,))	
-	    imsave(input_folder+path.splitext(pic)[0]+'_px'+str(rdness*randomness_step)+'rand.jpg', im)
+	    im = ndimage.geometric_transform(im, randomization_funct, mode= 'nearest', extra_arguments=(rdness,))
+	    toimage(im, cmin=0, cmax=255).save(input_folder+path.splitext(pic)[0]+'_px'+str(rdness*randomness_step)+'rand.jpg') # use this instead of imsave to avoide rescaling to maximize dynamic range
     else:
 	for cell_increment in np.arange(cell_size_increments):
 	    cell_size = cell_size_minimum+cell_size_step*cell_increment
@@ -50,10 +49,10 @@ for pic in listdir(input_folder):
 	    slices = np.zeros((cell_size, cell_size))
 	    
 	    # calculate subimage to make sure that pixels exceeding the optimal slice are distributed equally along x and y  	    
-	    nonzero_y = np.shape([line for line in im if len(np.unique(line)) >= 2])[0] # gets the number of lines with more than background values
+	    nonzero_y = np.shape([line for line in im if len(np.unique(line)) >= 6])[0] # gets the number of lines with more than background values - use 6 (instead of 2) to account for slightly fuzzy background
 	    leadingzeros_y = 0
 	    for y in im:
-		if len(np.unique(y)) < 2:
+		if len(np.unique(y)) < 6: # gets the number of lines with more than background values - use 6 (instead of 2) to account for slightly fuzzy background
 		    leadingzeros_y +=1
 		else: 
 		    break
@@ -69,10 +68,11 @@ for pic in listdir(input_folder):
 	    all_squares = np.zeros((1,cell_size,cell_size)) # first zeroes frame (created just for the vstack to work at the first iteration)
 	    
 	    for row_number, sub_im_row in enumerate(sub_im_rows):
-		nonzero_x_row = np.shape([line for line in sub_im_row.T if len(np.unique(line)) >= 2])[0] # gets the number of lines with more than background values
+		#~ print np.shape(sub_im_row)
+		nonzero_x_row = np.shape([line for line in sub_im_row.T if len(np.unique(line)) >= 4])[0] # gets the number of lines with more than background values - use 4 (instead of 2 OR 6) to account for both slightly fuzzy background and offset which may place the rows with >6 values detected above outside of the first row of cells.
 		leadingzeros_x_row = 0
 		for x in sub_im_row.T:
-		    if len(np.unique(x)) < 2:
+		    if len(np.unique(x)) < 4: # gets the number of lines with more than background values - use 4 (instead of 2 OR 6) to account for both slightly fuzzy background and offset which may place the rows with >6 values detected above outside of the first row of cells.
 			leadingzeros_x_row +=1
 		    else: 
 			break
@@ -82,9 +82,9 @@ for pic in listdir(input_folder):
 		squares = view_as_windows(sub_row, (cell_size, cell_size))
 		cell_squares = squares[:,::cell_size][0]
 		all_squares = np.vstack((all_squares, cell_squares))
-		row_start_stop_cells[row_number, 0] = leadingzeros_x_row-rest_x_l
-		row_start_stop_cells[row_number, 1] = np.shape(im)[1]-(leadingzeros_x_row+nonzero_x_row+rest_x_r)
-		row_start_stop_cells[row_number, 2] = np.shape(cell_squares)[0]
+		row_start_stop_cells[row_number, 0] = leadingzeros_x_row-rest_x_l # start pos
+		row_start_stop_cells[row_number, 1] = np.shape(im)[1]-(leadingzeros_x_row+nonzero_x_row+rest_x_r) # stop pos
+		row_start_stop_cells[row_number, 2] = np.shape(cell_squares)[0] # cells number
 	    
 	    all_squares = all_squares[1:] # remove first zeroes frame (created just for the vstack to work at the first iteration)
 	    all_squares = np.random.permutation(all_squares)
@@ -94,15 +94,16 @@ for pic in listdir(input_folder):
 	    scrambled_image = np.zeros((1, np.shape(im)[1]))
 	    
 	    for row_number, sub_im_row in enumerate(sub_im_rows):
-		shuffled_squares = montage.montage2d(all_squares[:row_start_stop_cells[row_number, 2]], output_shape=(1,row_start_stop_cells[row_number, 2]))
+		shuffled_squares = montage2d(all_squares[:row_start_stop_cells[row_number, 2]], grid_shape=(1,row_start_stop_cells[row_number, 2]))
 		all_squares = all_squares[row_start_stop_cells[row_number, 2]:]
 		padded_row = np.pad(shuffled_squares, ((0,0),(row_start_stop_cells[row_number,0],row_start_stop_cells[row_number,1])), 'constant' ,constant_values=pad_value)
 		scrambled_image = np.vstack((scrambled_image, padded_row))
 		
 	    scrambled_image = scrambled_image[1:]
 	    scrambled_image = np.pad(scrambled_image, ((leadingzeros_y-rest_y_u, np.shape(im)[0]-(leadingzeros_y+nonzero_y+rest_y_d)),(0,0)), 'constant' ,constant_values=pad_value)
-		
+		    
 	    #~ imgplot = plt.imshow(scrambled_image, cmap = cm.Greys_r, interpolation='nearest')
-	    plt.show()
-	    imsave(input_folder+path.splitext(pic)[0]+'_cell'+str(cell_size)+'rand.jpg', scrambled_image)
-    
+	    #~ plt.show()
+	    
+	    toimage(scrambled_image, cmin=0, cmax=255).save(input_folder+path.splitext(pic)[0]+'_cell'+str(cell_size)+'rand.jpg') # use this instead of imsave to avoide rescaling to maximize dynamic range
+    #~ break
