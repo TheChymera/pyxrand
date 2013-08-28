@@ -17,7 +17,7 @@ by_pixel = False # True if you want to shuffle by-pixel, False if you want to sh
 localpath = '~/src/pyxrand/img/' # path where image files are located
 
 cell_size_step = 4 # in what steps should the cell size increase [px] ?
-cell_size_minimum = 8 # what's the minimum cell size / start cell size [px] ?
+cell_size_minimum = 6 # what's the minimum cell size / start cell size [px] ?
 cell_size_increments = 6 # how many pictures do you want ?
 
 max_randomness = 16 # type maximal re-mapping radius -- ONLY RELEVANT FOR by_pixel == True
@@ -38,6 +38,7 @@ for pic in listdir(input_folder):
 	    im = ndimage.geometric_transform(im, randomization_funct, mode= 'nearest', extra_arguments=(rdness,))
 	    toimage(im, cmin=0, cmax=255).save(input_folder+path.splitext(pic)[0]+'_px'+str(rdness*randomness_step)+'rand.jpg') # use this instead of imsave to avoide rescaling to maximize dynamic range
     else:
+	print pic
 	for cell_increment in np.arange(cell_size_increments):
 	    cell_size = cell_size_minimum+cell_size_step*cell_increment
 	    im = mpimg.imread(input_folder+pic)
@@ -69,10 +70,10 @@ for pic in listdir(input_folder):
 	    
 	    for row_number, sub_im_row in enumerate(sub_im_rows):
 		#~ print np.shape(sub_im_row)
-		nonzero_x_row = np.shape([line for line in sub_im_row.T if len(np.unique(line)) >= 4])[0] # gets the number of lines with more than background values - use 4 (instead of 2 OR 6) to account for both slightly fuzzy background and offset which may place the rows with >6 values detected above outside of the first row of cells.
+		nonzero_x_row = np.shape([line for line in sub_im_row.T if len(np.unique(line)) >= 2])[0] # gets the number of lines with more than background values - use 4 (instead of 2 OR 6) to account for both slightly fuzzy background and offset which may place the rows with >6 values detected above outside of the first row of cells.
 		leadingzeros_x_row = 0
 		for x in sub_im_row.T:
-		    if len(np.unique(x)) < 4: # gets the number of lines with more than background values - use 4 (instead of 2 OR 6) to account for both slightly fuzzy background and offset which may place the rows with >6 values detected above outside of the first row of cells.
+		    if len(np.unique(x)) < 2: # gets the number of lines with more than background values - use 4 (instead of 2 OR 6) to account for both slightly fuzzy background and offset which may place the rows with >6 values detected above outside of the first row of cells.
 			leadingzeros_x_row +=1
 		    else: 
 			break
