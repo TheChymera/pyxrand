@@ -18,10 +18,13 @@ localpath = '~/src/pyxrand/img/' # path where image files are located
 
 cell_size_step = 4 # in what steps should the cell size increase [px] ?
 cell_size_minimum = 6 # what's the minimum cell size / start cell size [px] ?
-cell_size_increments = 6 # how many pictures do you want ?
+cell_size_increments = 1 # how many pictures do you want ?
 
 max_randomness = 16 # type maximal re-mapping radius -- ONLY RELEVANT FOR by_pixel == True
 randomness_steps = 8 # type desired number of randomness steps (i.e. the number of output files) -- ONLY RELEVANT FOR by_pixel == True
+
+column_tolerance = 6 # the columns are the first step in ROI selection. This setting to accounts for slightly fuzzy background
+row_tolerance = 2 # the columns are the second step in ROI selection. This setting to accounts for slightly fuzzy background, is extra small because for small clusters equal-color lines may occur in the face region
 
 localpath = path.expanduser(localpath)
 input_folder = localpath
@@ -50,10 +53,10 @@ for pic in listdir(input_folder):
 	    slices = np.zeros((cell_size, cell_size))
 	    
 	    # calculate subimage to make sure that pixels exceeding the optimal slice are distributed equally along x and y  	    
-	    nonzero_y = np.shape([line for line in im if len(np.unique(line)) >= 6])[0] # gets the number of lines with more than background values - use 6 (instead of 2) to account for slightly fuzzy background
+	    nonzero_y = np.shape([line for line in im if len(np.unique(line)) >= column_tolerance])[0] # counts the number of lines with more than background values
 	    leadingzeros_y = 0
 	    for y in im:
-		if len(np.unique(y)) < 6: # gets the number of lines with more than background values - use 6 (instead of 2) to account for slightly fuzzy background
+		if len(np.unique(y)) < column_tolerance: # counts the number of lines with less than background values
 		    leadingzeros_y +=1
 		else: 
 		    break
@@ -70,10 +73,10 @@ for pic in listdir(input_folder):
 	    
 	    for row_number, sub_im_row in enumerate(sub_im_rows):
 		#~ print np.shape(sub_im_row)
-		nonzero_x_row = np.shape([line for line in sub_im_row.T if len(np.unique(line)) >= 2])[0] # gets the number of lines with more than background values - use 4 (instead of 2 OR 6) to account for both slightly fuzzy background and offset which may place the rows with >6 values detected above outside of the first row of cells.
+		nonzero_x_row = np.shape([line for line in sub_im_row.T if len(np.unique(line)) >= row_tolerance])[0] # counts the number of lines with more than background values
 		leadingzeros_x_row = 0
 		for x in sub_im_row.T:
-		    if len(np.unique(x)) < 2: # gets the number of lines with more than background values - use 4 (instead of 2 OR 6) to account for both slightly fuzzy background and offset which may place the rows with >6 values detected above outside of the first row of cells.
+		    if len(np.unique(x)) < row_tolerance: # counts the number of lines with less than background values
 			leadingzeros_x_row +=1
 		    else: 
 			break

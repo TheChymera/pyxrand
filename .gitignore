@@ -40,7 +40,7 @@ image*.png
 .settings/*
 
 #Folders with non-free data:
-img/
+img*/
 
 #git
 *.py.*
