@@ -10,20 +10,19 @@ import numpy as np
 import matplotlib.cm as cm
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
-import imp
 import cv2
 
 by_pixel = False # True if you want to shuffle by-pixel, False if you want to shuffle by cluster.
-localpath = '~/src/pyxrand/img/' # path where image files are located
+localpath = '~/src/pyxrand/img_carinanw/' # path where image files are located
 
 cell_size_step = 4 # in what steps should the cell size increase [px] ?
 cell_size_minimum = 6 # what's the minimum cell size / start cell size [px] ?
-cell_size_increments = 6 # how many pictures do you want ?
+cell_size_increments = 1 # how many pictures do you want ?
 
 max_randomness = 16 # type maximal re-mapping radius -- ONLY RELEVANT FOR by_pixel == True
 randomness_steps = 8 # type desired number of randomness steps (i.e. the number of output files) -- ONLY RELEVANT FOR by_pixel == True
 
-column_tolerance = 4 # the columns are the first step in ROI selection. This setting to accounts for slightly fuzzy background
+column_tolerance = 6 # the columns are the first step in ROI selection. This setting to accounts for slightly fuzzy background
 row_tolerance = 2 # the columns are the second step in ROI selection. This setting to accounts for slightly fuzzy background, is extra small because for small clusters equal-color lines may occur in the face region
 
 localpath = path.expanduser(localpath)
@@ -41,11 +40,15 @@ for pic in listdir(input_folder):
 	    im = ndimage.geometric_transform(im, randomization_funct, mode= 'nearest', extra_arguments=(rdness,))
 	    toimage(im, cmin=0, cmax=255).save(input_folder+path.splitext(pic)[0]+'_px'+str(rdness*randomness_step)+'rand.jpg') # use this instead of imsave to avoide rescaling to maximal dynamic range
     else:
-	print pic
+	print(pic)
 	for cell_increment in np.arange(cell_size_increments):
 	    cell_size = cell_size_minimum+cell_size_step*cell_increment
 	    im = mpimg.imread(input_folder+pic)
-	    height, width = np.shape(im)
+	    try:
+		height, width = np.shape(im)
+	    except ValueError:
+		print('The script currently only supports grayscale images - this is probably RGB. It will not be processed to clusters.')
+		
 	    slice_coordinates = np.zeros(2)
 	    slices = np.zeros((cell_size, cell_size))
 	    
@@ -57,12 +60,12 @@ for pic in listdir(input_folder):
 		    leadingzeros_y +=1
 		else: 
 		    break
-	    print leadingzeros_y
+
 	    rest_y_d = np.floor((cell_size-(nonzero_y % cell_size)) / 2) # pixels surplus after cluster placement within ROI (d for down)
 	    rest_y_u = np.ceil((cell_size-(nonzero_y % cell_size)) / 2)
 	    sub_im = im[leadingzeros_y-rest_y_u:leadingzeros_y+nonzero_y+rest_y_d,:]
 	    if leadingzeros_y-rest_y_u <=0:
-		print 'This picture has a bad background. It will not be processed to clusters.'
+		print('This picture has a bad background (above the ROI). It will not be processed to clusters.')
 		continue
 	    # end subimage
 	    
@@ -80,15 +83,26 @@ for pic in listdir(input_folder):
 			leadingzeros_x_row +=1
 		    else: 
 			break
+		
 		rest_x_r = np.floor((cell_size-(nonzero_x_row % cell_size)) / 2) # pixels surplus after cluster placement within ROI
 		rest_x_l = np.ceil((cell_size-(nonzero_x_row % cell_size)) / 2)
-		sub_row = sub_im_row[:,leadingzeros_x_row-rest_x_l:leadingzeros_x_row+nonzero_x_row+rest_x_r]
-		squares = view_as_windows(sub_row, (cell_size, cell_size))
-		cell_squares = squares[:,::cell_size][0]
-		all_squares = np.vstack((all_squares, cell_squares))
-		row_start_stop_cells[row_number, 0] = leadingzeros_x_row-rest_x_l # start pos
-		row_start_stop_cells[row_number, 1] = np.shape(im)[1]-(leadingzeros_x_row+nonzero_x_row+rest_x_r) # stop pos
-		row_start_stop_cells[row_number, 2] = np.shape(cell_squares)[0] # cells number
+			
+		if leadingzeros_x_row-rest_x_l <=0:
+		    print('This picture has a bad background (left of the ROI). It will not be processed to clusters.')
+		    break_parentloop = True
+		    break
+		else:
+		    sub_row = sub_im_row[:,leadingzeros_x_row-rest_x_l:leadingzeros_x_row+nonzero_x_row+rest_x_r]
+		    squares = view_as_windows(sub_row, (cell_size, cell_size))
+		    cell_squares = squares[:,::cell_size][0]
+		    all_squares = np.vstack((all_squares, cell_squares))
+		    row_start_stop_cells[row_number, 0] = leadingzeros_x_row-rest_x_l # start pos
+		    row_start_stop_cells[row_number, 1] = np.shape(im)[1]-(leadingzeros_x_row+nonzero_x_row+rest_x_r) # stop pos
+		    row_start_stop_cells[row_number, 2] = np.shape(cell_squares)[0] # cells number
+		    break_parentloop = False
+	    
+	    if break_parentloop:
+		continue
 	    
 	    all_squares = all_squares[1:] # remove first zeroes frame (created just for the vstack to work at the first iteration)
 	    all_squares = np.random.permutation(all_squares)
@@ -110,3 +124,4 @@ for pic in listdir(input_folder):
 	    #~ plt.show()
 	    
 	    toimage(scrambled_image, cmin=0, cmax=255).save(input_folder+path.splitext(pic)[0]+'_cell'+str(cell_size)+'rand.jpg') # use this instead of imsave to avoide rescaling to maximal dynamic range
+	    print('Done!')
