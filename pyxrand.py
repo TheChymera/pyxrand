@@ -18,12 +18,12 @@ localpath = '~/src/pyxrand/img/' # path where image files are located
 
 cell_size_step = 4 # in what steps should the cell size increase [px] ?
 cell_size_minimum = 6 # what's the minimum cell size / start cell size [px] ?
-cell_size_increments = 1 # how many pictures do you want ?
+cell_size_increments = 6 # how many pictures do you want ?
 
 max_randomness = 16 # type maximal re-mapping radius -- ONLY RELEVANT FOR by_pixel == True
 randomness_steps = 8 # type desired number of randomness steps (i.e. the number of output files) -- ONLY RELEVANT FOR by_pixel == True
 
-column_tolerance = 6 # the columns are the first step in ROI selection. This setting to accounts for slightly fuzzy background
+column_tolerance = 4 # the columns are the first step in ROI selection. This setting to accounts for slightly fuzzy background
 row_tolerance = 2 # the columns are the second step in ROI selection. This setting to accounts for slightly fuzzy background, is extra small because for small clusters equal-color lines may occur in the face region
 
 localpath = path.expanduser(localpath)
@@ -39,16 +39,13 @@ for pic in listdir(input_folder):
 	im = mpimg.imread(input_folder+pic)
 	for rdness in np.arange(randomness_steps)+1:
 	    im = ndimage.geometric_transform(im, randomization_funct, mode= 'nearest', extra_arguments=(rdness,))
-	    toimage(im, cmin=0, cmax=255).save(input_folder+path.splitext(pic)[0]+'_px'+str(rdness*randomness_step)+'rand.jpg') # use this instead of imsave to avoide rescaling to maximize dynamic range
+	    toimage(im, cmin=0, cmax=255).save(input_folder+path.splitext(pic)[0]+'_px'+str(rdness*randomness_step)+'rand.jpg') # use this instead of imsave to avoide rescaling to maximal dynamic range
     else:
 	print pic
 	for cell_increment in np.arange(cell_size_increments):
 	    cell_size = cell_size_minimum+cell_size_step*cell_increment
 	    im = mpimg.imread(input_folder+pic)
 	    height, width = np.shape(im)
-	    record_squares_switch = True
-	    record_rowstart_switch = True
-	    counter = 0
 	    slice_coordinates = np.zeros(2)
 	    slices = np.zeros((cell_size, cell_size))
 	    
@@ -60,10 +57,13 @@ for pic in listdir(input_folder):
 		    leadingzeros_y +=1
 		else: 
 		    break
-		    
+	    print leadingzeros_y
 	    rest_y_d = np.floor((cell_size-(nonzero_y % cell_size)) / 2) # pixels surplus after cluster placement within ROI (d for down)
 	    rest_y_u = np.ceil((cell_size-(nonzero_y % cell_size)) / 2)
 	    sub_im = im[leadingzeros_y-rest_y_u:leadingzeros_y+nonzero_y+rest_y_d,:]
+	    if leadingzeros_y-rest_y_u <=0:
+		print 'This picture has a bad background. It will not be processed to clusters.'
+		continue
 	    # end subimage
 	    
 	    sub_im_rows = np.reshape(sub_im, (-1, cell_size, np.shape(sub_im)[1]))
@@ -109,5 +109,4 @@ for pic in listdir(input_folder):
 	    #~ imgplot = plt.imshow(scrambled_image, cmap = cm.Greys_r, interpolation='nearest')
 	    #~ plt.show()
 	    
-	    toimage(scrambled_image, cmin=0, cmax=255).save(input_folder+path.splitext(pic)[0]+'_cell'+str(cell_size)+'rand.jpg') # use this instead of imsave to avoide rescaling to maximize dynamic range
-    #~ break
+	    toimage(scrambled_image, cmin=0, cmax=255).save(input_folder+path.splitext(pic)[0]+'_cell'+str(cell_size)+'rand.jpg') # use this instead of imsave to avoide rescaling to maximal dynamic range
