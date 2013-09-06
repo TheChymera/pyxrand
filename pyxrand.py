@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import cv2
 
 by_pixel = False # True if you want to shuffle by-pixel, False if you want to shuffle by cluster.
-localpath = '~/src/pyxrand/img_carinanw/' # path where image files are located
+localpath = '~/src/pyxrand/img/' # path where image files are located
 
 cell_size_step = 4 # in what steps should the cell size increase [px] ?
 cell_size_minimum = 6 # what's the minimum cell size / start cell size [px] ?
@@ -48,6 +48,7 @@ for pic in listdir(input_folder):
 		height, width = np.shape(im)
 	    except ValueError:
 		print('The script currently only supports grayscale images - this is probably RGB. It will not be processed to clusters.')
+		continue
 		
 	    slice_coordinates = np.zeros(2)
 	    slices = np.zeros((cell_size, cell_size))
