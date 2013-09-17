@@ -13,14 +13,14 @@ import matplotlib.pyplot as plt
 import cv2
 
 by_pixel = False # True if you want to shuffle by-pixel, False if you want to shuffle by cluster.
-localpath = '~/src/pyxrand/img_carina/' # path where image files are located
+localpath = '~/src/faceRT/img/px4/' # path where image files are located
 
 cell_size_step = 4 # in what steps should the cell size increase [px] ?
 cell_size_minimum = 6 # what's the minimum cell size / start cell size [px] ?
-cell_size_increments = 1 # how many pictures do you want ?
+cell_size_increments = 6 # how many pictures do you want ?
 
-max_randomness = 16 # type maximal re-mapping radius -- ONLY RELEVANT FOR by_pixel == True
-randomness_steps = 8 # type desired number of randomness steps (i.e. the number of output files) -- ONLY RELEVANT FOR by_pixel == True
+max_randomness = 12 # type maximal re-mapping radius -- ONLY RELEVANT FOR by_pixel == True
+randomness_steps = 6 # type desired number of randomness steps (i.e. the number of output files) -- ONLY RELEVANT FOR by_pixel == True
 
 column_tolerance = 6 # the columns are the first step in ROI selection. This setting to accounts for slightly fuzzy background
 row_tolerance = 3 # the columns are the second step in ROI selection. This setting to accounts for slightly fuzzy background, is extra small because for small clusters equal-color lines may occur in the face region
@@ -29,18 +29,18 @@ localpath = path.expanduser(localpath)
 input_folder = localpath
 
 for pic in listdir(input_folder):
+    print(pic)
     if path.splitext(pic)[0][-4:] == 'rand': # identifies output images 
 	continue				   # don't re-randomize them!
     elif by_pixel:
 	randomness_step = int(max_randomness / randomness_steps)
 	def randomization_funct(output_coords,rdness): 
-	    return (output_coords[0] + np.random.randint(-rdness*randomness_step, rdness*randomness_step, (1, 1)+1), output_coords[1] + np.random.randint(-rdness*randomness_step, rdness*randomness_step+1, (1, 1)))
+	    return (output_coords[0] + np.random.randint(-rdness*randomness_step, rdness*randomness_step+1, (1, 1)), output_coords[1] + np.random.randint(-rdness*randomness_step, rdness*randomness_step+1, (1, 1)))
 	im = mpimg.imread(input_folder+pic)
 	for rdness in np.arange(randomness_steps)+1:
 	    im = ndimage.geometric_transform(im, randomization_funct, mode= 'nearest', extra_arguments=(rdness,))
 	    toimage(im, cmin=0, cmax=255).save(input_folder+path.splitext(pic)[0]+'_px'+str(rdness*randomness_step)+'rand.jpg') # use this instead of imsave to avoide rescaling to maximal dynamic range
     else:
-	print(pic)
 	for cell_increment in np.arange(cell_size_increments):
 	    cell_size = cell_size_minimum+cell_size_step*cell_increment
 	    im = mpimg.imread(input_folder+pic)
@@ -76,7 +76,6 @@ for pic in listdir(input_folder):
 	    all_squares = np.zeros((1,cell_size,cell_size)) # first zeroes frame (created just for the vstack to work at the first iteration)
 	    
 	    for row_number, sub_im_row in enumerate(sub_im_rows):
-		#~ print np.shape(sub_im_row)
 		nonzero_x_row = np.shape([line for line in sub_im_row.T if len(np.unique(line)) >= row_tolerance])[0] # counts the number of lines with more than background values
 		leadingzeros_x_row = 0
 		for x in sub_im_row.T:
@@ -94,7 +93,6 @@ for pic in listdir(input_folder):
 		    break
 		else:
 		    sub_row = sub_im_row[:,leadingzeros_x_row-rest_x_l:leadingzeros_x_row+nonzero_x_row+rest_x_r]
-		    print(leadingzeros_x_row-rest_x_l, leadingzeros_x_row+nonzero_x_row+rest_x_r, leadingzeros_x_row, nonzero_x_row, rest_x_r)
 		    squares = view_as_windows(sub_row, (cell_size, cell_size))
 		    cell_squares = squares[:,::cell_size][0]
 		    all_squares = np.vstack((all_squares, cell_squares))
