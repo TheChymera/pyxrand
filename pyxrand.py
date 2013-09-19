@@ -13,11 +13,12 @@ import matplotlib.pyplot as plt
 import cv2
 
 by_pixel = False # True if you want to shuffle by-pixel, False if you want to shuffle by cluster.
-localpath = '~/src/faceRT/img/px4/' # path where image files are located
+#~ experiment_path = '~/src/faceRT/img/px4/' # path where image files are located
+subdir = 'img/' 
 
 cell_size_step = 4 # in what steps should the cell size increase [px] ?
-cell_size_minimum = 6 # what's the minimum cell size / start cell size [px] ?
-cell_size_increments = 6 # how many pictures do you want ?
+cell_size_minimum = 11 # what's the minimum cell size / start cell size [px] ?
+cell_size_increments = 5 # how many pictures do you want ?
 
 max_randomness = 12 # type maximal re-mapping radius -- ONLY RELEVANT FOR by_pixel == True
 randomness_steps = 6 # type desired number of randomness steps (i.e. the number of output files) -- ONLY RELEVANT FOR by_pixel == True
@@ -25,14 +26,18 @@ randomness_steps = 6 # type desired number of randomness steps (i.e. the number 
 column_tolerance = 6 # the columns are the first step in ROI selection. This setting to accounts for slightly fuzzy background
 row_tolerance = 3 # the columns are the second step in ROI selection. This setting to accounts for slightly fuzzy background, is extra small because for small clusters equal-color lines may occur in the face region
 
-localpath = path.expanduser(localpath)
+try:
+    experiment_path
+except NameError:
+    localpath = path.dirname(path.realpath(__file__)) + '/' + subdir
+else: localpath = path.expanduser(experiment_path)
 input_folder = localpath
 
 for pic in listdir(input_folder):
-    print(pic)
     if path.splitext(pic)[0][-4:] == 'rand': # identifies output images 
 	continue				   # don't re-randomize them!
     elif by_pixel:
+	print(pic)
 	randomness_step = int(max_randomness / randomness_steps)
 	def randomization_funct(output_coords,rdness): 
 	    return (output_coords[0] + np.random.randint(-rdness*randomness_step, rdness*randomness_step+1, (1, 1)), output_coords[1] + np.random.randint(-rdness*randomness_step, rdness*randomness_step+1, (1, 1)))
@@ -40,7 +45,9 @@ for pic in listdir(input_folder):
 	for rdness in np.arange(randomness_steps)+1:
 	    im = ndimage.geometric_transform(im, randomization_funct, mode= 'nearest', extra_arguments=(rdness,))
 	    toimage(im, cmin=0, cmax=255).save(input_folder+path.splitext(pic)[0]+'_px'+str(rdness*randomness_step)+'rand.jpg') # use this instead of imsave to avoide rescaling to maximal dynamic range
+	    print('Done!')
     else:
+	print(pic)
 	for cell_increment in np.arange(cell_size_increments):
 	    cell_size = cell_size_minimum+cell_size_step*cell_increment
 	    im = mpimg.imread(input_folder+pic)
