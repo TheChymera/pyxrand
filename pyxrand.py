@@ -14,11 +14,11 @@ import cv2
 
 by_pixel = False # True if you want to shuffle by-pixel, False if you want to shuffle by cluster.
 #~ experiment_path = '~/src/faceRT/img/px4/' # path where image files are located
-subdir = 'img/' 
+subdir = 'pixShuffle_series/' 
 
 cell_size_step = 4 # in what steps should the cell size increase [px] ?
-cell_size_minimum = 11 # what's the minimum cell size / start cell size [px] ?
-cell_size_increments = 5 # how many pictures do you want ?
+cell_size_minimum = 26 # what's the minimum cell size / start cell size [px] ?
+cell_size_increments = 1 # how many pictures do you want ?
 
 max_randomness = 12 # type maximal re-mapping radius -- ONLY RELEVANT FOR by_pixel == True
 randomness_steps = 6 # type desired number of randomness steps (i.e. the number of output files) -- ONLY RELEVANT FOR by_pixel == True
@@ -34,9 +34,9 @@ else: localpath = path.expanduser(experiment_path)
 input_folder = localpath
 
 for pic in listdir(input_folder):
-    if path.splitext(pic)[0][-4:] == 'rand': # identifies output images 
-	continue				   # don't re-randomize them!
-    elif by_pixel:
+    #~ if path.splitext(pic)[0][-4:] == 'rand': # identifies output images 
+	#~ continue				   # don't re-randomize them!
+    if by_pixel:
 	print(pic)
 	randomness_step = int(max_randomness / randomness_steps)
 	def randomization_funct(output_coords,rdness): 
@@ -72,6 +72,9 @@ for pic in listdir(input_folder):
 	    rest_y_d = np.floor((cell_size-(nonzero_y % cell_size)) / 2) # pixels surplus after cluster placement within ROI (d for down)
 	    rest_y_u = np.ceil((cell_size-(nonzero_y % cell_size)) / 2)
 	    sub_im = im[leadingzeros_y-rest_y_u:leadingzeros_y+nonzero_y+rest_y_d,:]
+	    if leadingzeros_y+nonzero_y+rest_y_d > np.shape(im)[0]:
+		print('The ROI of this pictured is positioned too far down, so that the last clusters areas exceed the image border. This picture will not be processed to clusters.')
+		continue
 	    if leadingzeros_y-rest_y_u <=0:
 		print('This picture has a bad background (above the ROI). It will not be processed to clusters.')
 		continue
@@ -82,6 +85,7 @@ for pic in listdir(input_folder):
 	    row_start_stop_cells = np.zeros((np.shape(sub_im_rows)[0],3)) # variable containing the x position where the first cell starts and the last cell ends
 	    all_squares = np.zeros((1,cell_size,cell_size)) # first zeroes frame (created just for the vstack to work at the first iteration)
 	    
+	    break_parentloop = False # variable for continuing if an exclusion criterion inside the nestled loops is met.
 	    for row_number, sub_im_row in enumerate(sub_im_rows):
 		nonzero_x_row = np.shape([line for line in sub_im_row.T if len(np.unique(line)) >= row_tolerance])[0] # counts the number of lines with more than background values
 		leadingzeros_x_row = 0
@@ -104,9 +108,14 @@ for pic in listdir(input_folder):
 		    cell_squares = squares[:,::cell_size][0]
 		    all_squares = np.vstack((all_squares, cell_squares))
 		    row_start_stop_cells[row_number, 0] = leadingzeros_x_row-rest_x_l # start pos
-		    row_start_stop_cells[row_number, 1] = np.shape(im)[1]-(leadingzeros_x_row+nonzero_x_row+rest_x_r) # stop pos
+		    row_start_stop_cells[row_number, 1] = np.shape(im)[1]-(leadingzeros_x_row+nonzero_x_row+rest_x_r) # stop pos (calculated from far end)
 		    row_start_stop_cells[row_number, 2] = np.shape(cell_squares)[0] # cells number
-		    break_parentloop = False
+		    if row_start_stop_cells[row_number, 1] < 0:
+			print('The ROI of this pictured is positioned too far left, so that the last clusters areas exceed the image border. This picture will not be processed to clusters.')
+			break_parentloop = True
+		    elif row_start_stop_cells[row_number, 0] < 0:
+			print('The ROI of this pictured is positioned too far right, so that the last clusters areas exceed the image border. This picture will not be processed to clusters.')
+			break_parentloop = True
 	    
 	    if break_parentloop:
 		continue
