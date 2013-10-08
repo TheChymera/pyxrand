@@ -44,7 +44,7 @@ for pic in listdir(input_folder):
 	im = mpimg.imread(input_folder+pic)
 	for rdness in np.arange(randomness_steps)+1:
 	    im = ndimage.geometric_transform(im, randomization_funct, mode= 'nearest', extra_arguments=(rdness,))
-	    toimage(im, cmin=0, cmax=255).save(input_folder+path.splitext(pic)[0]+'_px'+str(rdness*randomness_step)+'rand.jpg') # use this instead of imsave to avoide rescaling to maximal dynamic range
+	    toimage(im, cmin=0, cmax=255).save(input_folder+path.splitext(pic)[0]+'_px'+str("%03d" % (rdness*randomness_step))+'rand.jpg') # use this instead of imsave to avoide rescaling to maximal dynamic range
 	    print('Done!')
     else:
 	print(pic)
@@ -139,5 +139,5 @@ for pic in listdir(input_folder):
 	    #~ imgplot = plt.imshow(scrambled_image, cmap = cm.Greys_r, interpolation='nearest')
 	    #~ plt.show()
 	    
-	    toimage(scrambled_image, cmin=0, cmax=255).save(input_folder+path.splitext(pic)[0]+'_cell'+str(cell_size)+'rand.jpg') # use this instead of imsave to avoide rescaling to maximal dynamic range
+	    toimage(scrambled_image, cmin=0, cmax=255).save(input_folder+path.splitext(pic)[0]+'_cell'+str("%03d" % (cell_size))+'rand.jpg') # use this instead of imsave to avoide rescaling to maximal dynamic range
 	    print('Done!')
