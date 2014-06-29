@@ -8,8 +8,6 @@ Python script for shuffling pixels in images (either by-pixel with variable rand
 * **[matplotlib](https://en.wikipedia.org/wiki/Matplotlib)** - in Portage as **dev-python/matplotlib**
 * **[scikit-image](http://scikit-image.org/)** - in Portage as **sci-libs/scikits_image**
 
-Deps: matplotlib, scipy, scikit-image 
-
 Non-free image files excluded via .gitignore. Please contact the project leader for advice on how to acquire suitable images. 
 
 Released under the GPLv3 license.
