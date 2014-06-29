@@ -2,8 +2,13 @@
 
 Python script for shuffling pixels in images (either by-pixel with variable randomness or in variable cluster sizes with invariable randomness).
 
+##Dependencies
+
+* **[SciPy](https://en.wikipedia.org/wiki/Scipy)** - in [Portage](http://en.wikipedia.org/wiki/Portage_(software)) as **sci-libs/scipy**
+* **[matplotlib](https://en.wikipedia.org/wiki/Matplotlib)** - in Portage as **dev-python/matplotlib**
+* **[scikit-image](http://scikit-image.org/)** - in Portage as **sci-libs/scikits_image**
+
 Deps: matplotlib, scipy, scikit-image 
-WARNING: The script uses a patched scikit-image function (skimage.util.montage.montage2d) and will not work on machines not having that script locally linked. The patch is pending in upstream.
 
 Non-free image files excluded via .gitignore. Please contact the project leader for advice on how to acquire suitable images. 
 
