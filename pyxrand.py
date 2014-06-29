@@ -10,7 +10,6 @@ import numpy as np
 import matplotlib.cm as cm
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
-import cv2
 
 by_pixel = False # True if you want to shuffle by-pixel, False if you want to shuffle by cluster.
 #~ experiment_path = '~/src/faceRT/img/px4/' # path where image files are located
@@ -34,8 +33,6 @@ else: localpath = path.expanduser(experiment_path)
 input_folder = localpath
 
 for pic in listdir(input_folder):
-    #~ if path.splitext(pic)[0][-4:] == 'rand': # identifies output images 
-	#~ continue				   # don't re-randomize them!
     if by_pixel:
 	print(pic)
 	randomness_step = int(max_randomness / randomness_steps)
